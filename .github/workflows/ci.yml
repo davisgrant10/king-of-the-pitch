@@ -1,0 +1,56 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+  workflow_dispatch:
+
+# A newer push to the same branch makes an in-flight run obsolete.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: Build
+    runs-on: ubuntu-latest
+
+    env:
+      # src/lib/supabase/server.ts calls createClient() at module scope, so these
+      # must exist or `next build` fails with "supabaseUrl is required" while it
+      # collects page data. The values are deliberately fake: every page is
+      # `force-dynamic`, so nothing is fetched at build time and CI never touches
+      # the real Supabase project. The URL still has to parse as a valid URL.
+      #
+      # SUPABASE_SERVICE_ROLE_KEY is intentionally NOT set — supabaseAdmin() is
+      # only called per-request, so the build needs no secret.
+      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
+      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      NEXT_TELEMETRY_DISABLED: "1"
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      # Runs after the build so Next's generated types (next-env.d.ts and
+      # .next/types) exist. This also covers scripts/simulate.ts, which is not
+      # part of the Next build graph and would otherwise never be type-checked.
+      - name: Type-check
+        run: npx tsc --noEmit
