@@ -46,6 +46,11 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
+      # Lints before the build so a style failure reports in seconds rather
+      # than after a full compile.
+      - name: Lint
+        run: npm run lint
+
       - name: Build
         run: npm run build
 
