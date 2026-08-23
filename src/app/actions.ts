@@ -13,7 +13,7 @@ import { buildRound, buildCrownMatch, type HistoryEntry } from "@/lib/matchmakin
  */
 
 async function seasonHistory(seasonId: string, night: string): Promise<HistoryEntry[]> {
-  const { data, error } = await supabaseRead
+  const { data, error } = await supabaseRead()
     .from("matches")
     .select("id, night_date, match_rosters(player_id, side)")
     .eq("season_id", seasonId);

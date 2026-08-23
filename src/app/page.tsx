@@ -7,7 +7,7 @@ export const dynamic = "force-dynamic"; // live scoreboard: always render fresh
 
 export default async function Dashboard() {
   // 1. the season (first one; extend to a picker when you run several)
-  const { data: seasons, error: seasonErr } = await supabaseRead
+  const { data: seasons, error: seasonErr } = await supabaseRead()
     .from("seasons")
     .select("*")
     .order("created_at")
@@ -23,15 +23,15 @@ export default async function Dashboard() {
 
   // 2. tonight's matches (+ who's on each side), standings, roster size — in parallel
   const [{ data: matches }, { data: standings }, { count: playerCount }] = await Promise.all([
-    supabaseRead
+    supabaseRead()
       .from("matches")
       .select("*, match_rosters(player_id, side, players(name))")
       .eq("season_id", season.id)
       .eq("night_date", night)
       .order("round_no")
       .order("pitch_no"),
-    supabaseRead.from("player_standings").select("*").eq("season_id", season.id),
-    supabaseRead
+    supabaseRead().from("player_standings").select("*").eq("season_id", season.id),
+    supabaseRead()
       .from("season_players")
       .select("*", { count: "exact", head: true })
       .eq("season_id", season.id),
