@@ -112,22 +112,33 @@ export function buildRound(
 
   // ---- team optimizer: random restarts + greedy pairwise swaps ----
   const T = need / 3;
+  /**
+   * The gaps between these weights are load-bearing, not decorative. REPEAT is
+   * large enough that one extra pairing outweighs every club and skill gain
+   * available in a round put together. With the weights closer (they were 10 /
+   * 4 / 6), "skill" mode would buy team balance by pairing two players for a
+   * third time — trading away exactly the freshness the tournament exists for.
+   */
+  const REPEAT = 500; // × (times this pair has already been teamed)²
+  const SAME_CLUB = 4; // nudge toward cross-club teams
+  const SKILL = 6; // × rating points a team sits from the average
+
   const cost = (teams: string[][]) => {
     let c = 0;
     for (const t of teams) {
       for (let i = 0; i < 3; i++) {
         for (let j = i + 1; j < 3; j++) {
           const n = together.get(pairKey(t[i], t[j])) ?? 0;
-          c += n * n * 10 + n; // repeat-teammate penalty (dominant)
+          c += n * n * REPEAT + n;
           const ca = clubOf(t[i]);
-          if (ca && ca === clubOf(t[j])) c += 4; // same-club nudge (never beats a repeat)
+          if (ca && ca === clubOf(t[j])) c += SAME_CLUB;
         }
       }
     }
     if (balancing) {
       const sums = teams.map((t) => t.reduce((a, id) => a + skillOf(id), 0));
       const mean = sums.reduce((a, b) => a + b, 0) / sums.length;
-      c += sums.reduce((a, v) => a + Math.abs(v - mean), 0) * 6;
+      c += sums.reduce((a, v) => a + Math.abs(v - mean), 0) * SKILL;
     }
     return c;
   };

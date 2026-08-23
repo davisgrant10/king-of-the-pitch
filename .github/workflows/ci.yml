@@ -21,16 +21,12 @@ jobs:
     runs-on: ubuntu-latest
 
     env:
-      # src/lib/supabase/server.ts calls createClient() at module scope, so these
-      # must exist or `next build` fails with "supabaseUrl is required" while it
-      # collects page data. The values are deliberately fake: every page is
-      # `force-dynamic`, so nothing is fetched at build time and CI never touches
-      # the real Supabase project. The URL still has to parse as a valid URL.
-      #
-      # SUPABASE_SERVICE_ROLE_KEY is intentionally NOT set — supabaseAdmin() is
-      # only called per-request, so the build needs no secret.
-      NEXT_PUBLIC_SUPABASE_URL: https://placeholder.supabase.co
-      NEXT_PUBLIC_SUPABASE_ANON_KEY: placeholder-anon-key
+      # No Supabase variables here, deliberately. Both clients are now built
+      # lazily on the first request (src/lib/supabase/server.ts), so a correct
+      # build needs no configuration at all. Leaving them out turns this job
+      # into the regression test for that: move createClient() back to module
+      # scope and CI fails here, rather than someone's first Vercel deploy
+      # failing with supabase-js's opaque "supabaseUrl is required".
       NEXT_TELEMETRY_DISABLED: "1"
 
     steps:
@@ -59,3 +55,9 @@ jobs:
       # part of the Next build graph and would otherwise never be type-checked.
       - name: Type-check
         run: npx tsc --noEmit
+
+      # The fairness audit is seeded, so it is a genuine regression test rather
+      # than a coin flip: it fails only if the algorithm actually got worse at
+      # equal playing time, avoiding repeat teammates, or mixing clubs.
+      - name: Fairness audit
+        run: npm run simulate
